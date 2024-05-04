@@ -126,7 +126,7 @@
                 </ul>
                 <a
                     class="btn btn-outline-success"
-                    href="https://github.com/Usmanzahidcode/collabora-tribe"
+                    href="https://github.com/Usmanzahidcode/collaboratribe"
                     type="button" target="_blank">
                     Contribute to Platform
                 </a>
