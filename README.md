@@ -1,4 +1,4 @@
-<img src="assets/logo_header.png" alt="Collaboratribe Logo" width = "250px"/>
+<img src="public/assets/images/logo_header.png" alt="Collaboratribe Logo" width = "250px"/>
 
 <h2>Introduction</h2>
 <p>Collaboratribe is a game-changing project empowering IT students across Pakistan to learn, collaborate, and grow together. We believe in the power of teamwork and hands-on learning to shape a brighter future for the IT community.</p>
@@ -19,11 +19,13 @@
 ```bash
 git clone [repo https link]
 ```
+
 <p>Then make a new branch:</p>
 
 ```bash
 git checkout -b feature
 ```
+
 <p>Then make and commit the changes:</p>
 
 ```bash
