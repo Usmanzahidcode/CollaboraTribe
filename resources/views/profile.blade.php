@@ -29,6 +29,21 @@
     <div class="container-sm">
         <div class="col-12 col-md-10 mx-auto">
             <h1 class="serif mb-4">Account settings</h1>
+            @if(session('email_status') != null)
+                @if(session('email_status') == 'expired')
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <strong>Token Expired</strong> The email verification Link has been expired! Resend the link for verification.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @else
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <strong>{{ session('email_status') }}</strong> Now you may start using the platform!
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+            @endif
+
+
             @if(session('password_change_failed') != null)
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <strong>Please Retry!</strong> Old password is not right.

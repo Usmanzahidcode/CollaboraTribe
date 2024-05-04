@@ -106,7 +106,7 @@ class UserController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            Mail::to('gmail@gmail.com')->send(new WelcomeMail(data1: $data2));
+            Mail::to($user->email)->send(new WelcomeMail(data1: $data2));
             return redirect()->intended(route('user.manage'));
         }
 
@@ -220,17 +220,20 @@ class UserController extends Controller
     {
         $user = User::where('email_verification_token', $token)->first();
 
+        $message = 'Email has been successfully verified!'; // Default message
+
         if ($user == null) {
-            dd('Verification Token has been expired!');
+            $message = 'expired';
         } else {
             if ($user->email_verified_at != null) {
-                dd('Already verified');
+                $message = 'Email already verified';
+            } else {
+                $user->email_verified_at = now();
+                $user->save();
             }
-            $user->email_verified_at = now();
-            $user->save();
-            dd('Email has been successfully verified!');
         }
 
+        return redirect()->route('user.manage')->with('email_status', $message);
     }
 
     public function regenerateEmailToken(string $id)
@@ -248,5 +251,10 @@ class UserController extends Controller
         Mail::to('gmail@gmail.com')->send(new RenewVerificationToken($data));
 
         return redirect()->back();
+    }
+
+    public function passwordReset()
+    {
+
     }
 }

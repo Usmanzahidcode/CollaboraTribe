@@ -8,11 +8,13 @@
         </div>
     @endif
     @if(Auth::check() && Auth::user()->email_verified_at == null)
-        <div class="banner text-bg-danger text-center py-2">
-            <p>Verify you email address to keep using the application: <a class="badge text-bg-primary text-decoration-none"
-                    href="{{ route('verify.email',['token'=>Auth::user()->email_verification_token]) }}">Verify</a>
+        <div class="banner text-bg-danger text-center py-2 d-flex align-items-center justify-content-center gap-3">
+            <p>Verify you email address to keep using the application!
+{{--                <a class="badge text-bg-primary text-decoration-none"--}}
+{{--                   href="{{ route('verify.email',['token'=>Auth::user()->email_verification_token]) }}">Verify</a>--}}
             </p>
-            <a class="btn btn-warning btn-sm mt-2" href="{{ route('regenerate.emailtoken', ['user'=>Auth::user()->id]) }}">Resend email</a>
+            <a class="btn btn-warning btn-sm"
+               href="{{ route('regenerate.emailtoken', ['user'=>Auth::user()->id]) }}">Resend email</a>
         </div>
     @endif
 
