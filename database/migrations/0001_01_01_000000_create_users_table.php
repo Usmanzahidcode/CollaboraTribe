@@ -23,6 +23,12 @@ return new class extends Migration {
             $table->string('github');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('email_verification_token')->nullable();
+
+            //Password reset
+            $table->string('reset_password_token')->nullable();
+            $table->timestamp('reset_password_token_at')->nullable();
+
+            //TimeStamps
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrentOnUpdate()->nullable();
 

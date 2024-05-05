@@ -29,6 +29,13 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 @endif
+                @if(isset($password_reset))
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <strong>Your password has been reset!</strong> Use the new password to sign in!
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
 
                 @if(session('signout-success') != null)
                     <div class="alert alert-warning alert-dismissible fade show" role="alert">
@@ -75,7 +82,7 @@
                         value = "Submit"
                         id = "submit"/>
                 </div>
-
+                <a class="text-white" href="{{ route('reset.password') }}">Forgot Password!</a><br>
                 <a class="text-white" href="{{ route('users.create') }}">I don't have an account!</a>
             </form>
         </div>

@@ -57,6 +57,22 @@ Route::get('/account/manage/', [UserController::class, 'manageAccount'])->name('
 Route::get('/verify-email/{token}', [UserController::class, 'verifyEmail'])->name('verify.email');
 Route::get('/regenerate/email-token/{user}', [UserController::class, 'regenerateEmailToken'])->name('regenerate.emailtoken');
 
+Route::get('/reset-password', function () {
+    return view('auth.password_reset_form');
+})->middleware(AlreadyLoggedIn::class)->name('reset.password');
+
+Route::post('/reset-password-email-submit', [UserController::class, 'passwordReset'])
+    ->middleware(AlreadyLoggedIn::class)
+    ->name('reset.submit');
+
+Route::get('/update-password/{token}', [UserController::class, 'passwordResetForm'])
+    ->middleware(AlreadyLoggedIn::class)
+    ->name('reset.form');
+
+Route::post('/update-password-submit/{email}', [UserController::class, 'passwordResetUpdate'])
+    ->middleware(AlreadyLoggedIn::class)
+    ->name('reset.submitted');
+
 Route::get('/404', function () {
     return view('fallback');
 });

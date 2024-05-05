@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\PasswordReset;
 use App\Mail\RenewVerificationToken;
 use App\Mail\WelcomeMail;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -253,8 +256,67 @@ class UserController extends Controller
         return redirect()->back();
     }
 
-    public function passwordReset()
+    public function passwordReset(Request $request)
     {
+        $request->validate([
+            'email' => [
+                'required',
+                'email',
+                Rule::exists('users', 'email'),
+            ],
+        ]);
 
+
+        $token = Str::random('32');
+        $user = User::where('email', $request->input('email'))->first();
+
+        if ($user->reset_password_token_at) {
+            $tokenTimestamp = strtotime($user->reset_password_token_at); // Convert datetime to Unix timestamp
+            $timeDifference = time() - $tokenTimestamp;
+
+            // Check if the token was generated within the last hour
+            if ($timeDifference < 3600) {
+                dd('Too many password reset requests!');
+            }
+        }
+
+
+        $user->reset_password_token = $token;
+        $user->reset_password_token_at = Carbon::now();
+        $user->save();
+
+
+        $data = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'link' => route('reset.form', ['token' => $user->reset_password_token]),
+        ];
+
+        Mail::to($user->email)->send(new PasswordReset($data));
+        return 'Email with the reset form link has been sent!';
+    }
+
+    public function passwordResetForm(string $token)
+    {
+        $user = User::where('reset_password_token', $token)->first();
+        if ($user == null) {
+            dd('Token Expired');
+        } else {
+            return view('auth.password_reset_update_form', ['email' => $user->email]);
+        }
+    }
+
+    public function passwordResetUpdate(Request $request, string $email)
+    {
+        $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+            'password_confirmation' => 'required|min:8',
+        ]);
+        $password = Hash::make($request->input('password'));
+        $user = User::where('email', $email)->first();
+        $user->password = $password;
+        $user->save();
+
+        return view('auth.signin', ['password_reset' => 'true']);
     }
 }
