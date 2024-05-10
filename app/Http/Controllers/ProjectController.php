@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\NewProjectEvent;
+use App\Events\NewUserEvent;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -86,6 +88,8 @@ class ProjectController extends Controller
         $project->author_id = Auth::user()->id;
         $project->attachment = $name;
         $project->save();
+
+        event(new NewProjectEvent($project->title, route('projects.show', ['project' => $project->id])));
 
 
         // Redirect or return a response

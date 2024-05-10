@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\NewUserEvent;
+use App\Jobs\RenewEmailTokenJob;
+use App\Jobs\ResetPasswordMailJob;
+use App\Jobs\WelcomeMailJob;
 use App\Mail\PasswordReset;
-use App\Mail\RenewVerificationToken;
-use App\Mail\WelcomeMail;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -107,9 +109,11 @@ class UserController extends Controller
             'link' => route('verify.email', ['token' => $user->email_verification_token]),
         ];
 
+        event(new NewUserEvent($user->name, route('users.show', ['user' => $user->id])));
+
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            Mail::to($user->email)->send(new WelcomeMail(data1: $data2));
+            dispatch(new WelcomeMailJob($data2, $user->email));
             return redirect()->intended(route('user.manage'));
         }
 
@@ -154,7 +158,8 @@ class UserController extends Controller
                 'nullable',
                 'image',
                 'mimes:jpeg,png,jpg,gif',
-                'max:5120',],
+                'max:5120',
+            ],
         ]);
 
         $user = User::find($id);
@@ -250,8 +255,8 @@ class UserController extends Controller
             'email' => $user->email,
             'link' => route('verify.email', ['token' => $user->email_verification_token])
         ];
-
-        Mail::to('gmail@gmail.com')->send(new RenewVerificationToken($data));
+        dispatch(new RenewEmailTokenJob($data, $user->email));
+        //->delay(now()->addSeconds(5))
 
         return redirect()->back();
     }
@@ -292,13 +297,15 @@ class UserController extends Controller
             'link' => route('reset.form', ['token' => $user->reset_password_token]),
         ];
 
-        Mail::to($user->email)->send(new PasswordReset($data));
+        dispatch(new ResetPasswordMailJob($data, $user->email));
+
         return 'Email with the reset form link has been sent!';
     }
 
     public function passwordResetForm(string $token)
     {
         $user = User::where('reset_password_token', $token)->first();
+        // To implement: Should not use the token again and again
         if ($user == null) {
             dd('Token Expired');
         } else {
