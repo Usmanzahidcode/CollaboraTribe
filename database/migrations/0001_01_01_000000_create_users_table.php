@@ -20,8 +20,8 @@ return new class extends Migration {
             $table->string('profile_picture');
             $table->text('bio')->nullable();
             $table->integer('cp')->default(0);
-            $table->enum('role', [UserRole::ADMIN, UserRole::STUDENT])->default(UserRole::STUDENT);
-            $table->enum('status', [UserStatus::ACTIVE, UserStatus::BANNED])->default(UserStatus::ACTIVE);
+            $table->enum('role', array_column(UserRole::cases(), 'value'))->default(UserRole::STUDENT);
+            $table->enum('status', array_column(UserStatus::cases(), 'value'))->default(UserStatus::ACTIVE);
             $table->string('github')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('email_verification_token')->nullable();

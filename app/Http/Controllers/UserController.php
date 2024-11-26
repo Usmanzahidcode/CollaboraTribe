@@ -17,35 +17,14 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function signOut()
-    {
-        Auth::logout();
-        return redirect()->route('users.signin')->with('signout-success', 'true');
-    }
-
-    public function signIn()
-    {
-        return view('auth.signin');
-    }
-
-    public function handleLogin(Request $request)
-    {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'min:8'],
-        ]);
-
-        if (Auth::attempt($credentials)) {
-            $request->session()->regenerate();
-            return redirect()->intended(route('user.manage'));
-        }
-
-        return redirect()->route('users.signin')->with('signin-error', 'true');
-    }
-
     public function index()
     {
         return view('admin.manageusers', ['users' => User::all()]);
+    }
+
+    public function create()
+    {
+        return view('auth.signup');
     }
 
     public function store(Request $request)
@@ -90,9 +69,30 @@ class UserController extends Controller
         return redirect()->route('user.manage', $user);
     }
 
-    public function create()
+    public function signIn()
     {
-        return view('auth.signup');
+        return view('auth.signin');
+    }
+
+    public function handleLogin(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'min:8'],
+        ]);
+
+        if (Auth::attempt($credentials)) {
+            $request->session()->regenerate();
+            return redirect()->intended(route('user.manage'));
+        }
+
+        return redirect()->route('users.signin')->with('signin-error', 'true');
+    }
+
+    public function signOut()
+    {
+        Auth::logout();
+        return redirect()->route('users.signin')->with('signout-success', 'true');
     }
 
     public function manageAccount($tab = 'none')
