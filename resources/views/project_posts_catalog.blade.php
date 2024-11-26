@@ -20,16 +20,16 @@
         @endif
 
         <div class="col-md-12">
-            @foreach($projects->reverse() as $row)
+            @foreach($projects as $project)
                 <div
                     class="row g-0 gap-4 border rounded overflow-hidden flex-md-row-reverse mb-4 shadow-sm h-md-250 position-relative">
                     <div class="col p-4 d-flex flex-column position-static gap-2 align-items-start">
-                        <strong class="d-inline-block mb-0 text-success fs-6">{{ $row->category }}</strong>
-                        <h3 class="mb-0 fs-1 serif fw-bold">{{ $row->title }}</h3>
+                        <strong class="d-inline-block mb-0 text-success fs-6">{{ $project->category }}</strong>
+                        <h3 class="mb-0 fs-1 serif fw-bold">{{ $project->title }}</h3>
                         <p class="fs-5 mb-2">
-                            {{ $row->excerpt }}</p>
+                            {{ $project->excerpt }}</p>
 
-                        <a href="{{ route('projects.show', ['project'=>$row->id]) }}"
+                        <a href="{{ route('projects.show', ['project'=>$project->id]) }}"
                            class="stretched-link text-decoration-none fw-medium btn btn-success">See details</a>
                     </div>
                 </div>

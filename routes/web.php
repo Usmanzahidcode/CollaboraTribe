@@ -16,7 +16,7 @@ Route::get('/', function () {
 
 
 Route::get('/user/sign-out', [UserController::class, 'signOut'])->name('users.signout')->middleware(IsLoggedIn::class);
-Route::post('/users/authenticate', [UserController::class, 'signin_submit'])->name('users.signin_submit')->middleware(AlreadyLoggedIn::class);
+Route::post('/users/authenticate', [UserController::class, 'handleLogin'])->name('users.signin_submit')->middleware(AlreadyLoggedIn::class);
 Route::get('/user/sign-in', [UserController::class, 'signIn'])->name('users.signin')->middleware(AlreadyLoggedIn::class);
 
 

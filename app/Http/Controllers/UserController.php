@@ -6,20 +6,17 @@ use App\Events\NewUserEvent;
 use App\Jobs\RenewEmailTokenJob;
 use App\Jobs\ResetPasswordMailJob;
 use App\Jobs\WelcomeMailJob;
-use App\Mail\PasswordReset;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-
     public function signOut()
     {
         Auth::logout();
@@ -31,14 +28,12 @@ class UserController extends Controller
         return view('auth.signin');
     }
 
-    public function signin_submit(Request $request)
+    public function handleLogin(Request $request)
     {
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'min:8'],
         ]);
-
-        $credentials = $request->only('email', 'password');
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
@@ -48,26 +43,11 @@ class UserController extends Controller
         return redirect()->route('users.signin')->with('signin-error', 'true');
     }
 
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        $users = User::all();
-        return view('admin.manageusers', ['users' => $users]);
+        return view('admin.manageusers', ['users' => User::all()]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        return view('auth.signup');
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validatedData = $request->validate([
@@ -77,76 +57,67 @@ class UserController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'password_confirmation' => 'required|min:8',
             'github' => 'required|string',
-            'profile_picture' => [
-                'required',
-                'image',
-                'mimes:jpeg,png,jpg,gif',
-                'max:5120',],
+            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120',
         ]);
 
         $validatedData['password'] = Hash::make($validatedData['password']);
+        $fileName = time() . '_profile_pic_' . $request->profile_picture->getClientOriginalName();
+        $request->file('profile_picture')->storeAs('public/userData/profile_pictures', $fileName);
 
-        $name = time() . '_profile_pic_' . $request->profile_picture->getClientOriginalName();
-        $request->file('profile_picture')->storeAs('public/userData/profile_pictures', $name);
-
-        // Create the user
-        $user = new User();
-
-        $user->name = $request->input('name');
-        $user->email = $request->input('email');
-        $user->github = $request->input('github');
-        $user->password = $validatedData['password'];
-        $user->bio = $request->input('bio');
-        $user->profile_picture = $name;
-
-        $user->email_verification_token = Str::random(32);
-        $user->save();
-        $credentials = $request->only('email', 'password');
-
-        $data2 = [
-            'name' => $user->name,
-            'email' => $user->email,
-            'link' => route('verify.email', ['token' => $user->email_verification_token]),
-        ];
+        $user = User::create([
+            'name' => $request->input('name'),
+            'email' => $request->input('email'),
+            'github' => $request->input('github'),
+            'password' => $validatedData['password'],
+            'bio' => $request->input('bio'),
+            'profile_picture' => $fileName,
+            'email_verification_token' => Str::random(32),
+        ]);
 
         event(new NewUserEvent($user->name, route('users.show', ['user' => $user->id])));
 
-        if (Auth::attempt($credentials)) {
+        if (Auth::attempt($request->only('email', 'password'))) {
+            dispatch(new WelcomeMailJob([
+                'name' => $user->name,
+                'email' => $user->email,
+                'link' => route('verify.email', ['token' => $user->email_verification_token]),
+            ], $user->email));
+
             $request->session()->regenerate();
-            dispatch(new WelcomeMailJob($data2, $user->email));
             return redirect()->intended(route('user.manage'));
         }
 
-        // Redirect or return a response
         return redirect()->route('user.manage', $user);
     }
 
-    /**
-     * Display the specified resource.
-     */
+    public function create()
+    {
+        return view('auth.signup');
+    }
+
     public function manageAccount($tab = 'none')
     {
-        $user = Auth::user();
-        return view('profile', ['user' => $user, 'tab' => $tab]);
+        return view('profile', ['user' => Auth::user(), 'tab' => $tab]);
     }
 
     public function show(string $id)
     {
-        $user = User::findOrFail($id);
-        return view('user-profile', ['user' => $user]);
+        return view('user-profile', ['user' => User::findOrFail($id)]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function adminBan(Request $request, string $id)
     {
-        //
+        $user = User::find($id);
+        $user->status = ($request->input('submit') == 'Ban') ? 'banned' : 'active';
+
+        if ($user->status == 'banned') {
+            $user->projects()->whereIn('status', ['inactive', 'active'])->update(['status' => 'aborted']);
+        }
+
+        $user->save();
+        return redirect()->back();
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
         $validatedData = $request->validate([
@@ -154,16 +125,10 @@ class UserController extends Controller
             'email' => 'required|email',
             'bio' => 'required|string',
             'github' => 'required|string',
-            'profile_picture' => [
-                'nullable',
-                'image',
-                'mimes:jpeg,png,jpg,gif',
-                'max:5120',
-            ],
+            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
         ]);
 
         $user = User::find($id);
-
         if ($request->hasFile('profile_picture')) {
             Storage::delete('public/userData/profile_pictures/' . $user->profile_picture);
             $name = time() . '_profile_pic_' . $request->profile_picture->getClientOriginalName();
@@ -172,38 +137,14 @@ class UserController extends Controller
             $name = $user->profile_picture;
         }
 
-        $user->name = $request->input('name');
-        $user->email = $request->input('email');
-        $user->bio = $request->input('bio');
-        $user->profile_picture = $name;
-
-        $user->save();
+        $user->update([
+            'name' => $request->input('name'),
+            'email' => $request->input('email'),
+            'bio' => $request->input('bio'),
+            'profile_picture' => $name,
+        ]);
 
         return redirect()->route('user.manage', ['user' => $user->id]);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
-
-    public function adminBan(Request $request, string $id)
-    {
-        $user = User::find($id);
-        if ($request->input('submit') == 'Ban') {
-            $user->status = 'banned';
-            $user->authoredProjects()->whereIn('status', ['inactive', 'active'])->update(['status' => 'aborted']);
-
-        } elseif ($request->input('submit') == 'Unban') {
-            $user->status = 'active';
-        }
-
-        $user->save();
-
-        return redirect()->back();
     }
 
     public function changePassword(Request $request)
@@ -214,31 +155,21 @@ class UserController extends Controller
         ]);
 
         if (Hash::check($request->input('old_password'), Auth::user()->password)) {
-            $user = Auth::user();
-            $user->password = Hash::make($validatedData['new_password']);
-            $user->save();
-
+            Auth::user()->update(['password' => Hash::make($validatedData['new_password'])]);
             return redirect()->route('user.manage')->with(['password_change_success' => 'true', 'tab' => 'pass']);
-        } else {
-            return redirect()->route('user.manage')->with(['password_change_failed' => 'true', 'tab' => 'pass']);
         }
+
+        return redirect()->route('user.manage')->with(['password_change_failed' => 'true', 'tab' => 'pass']);
     }
 
     public function verifyEmail(string $token)
     {
         $user = User::where('email_verification_token', $token)->first();
+        $message = $user ? ($user->email_verified_at ? 'Email already verified' : 'Email has been successfully verified!') : 'expired';
 
-        $message = 'Email has been successfully verified!'; // Default message
-
-        if ($user == null) {
-            $message = 'expired';
-        } else {
-            if ($user->email_verified_at != null) {
-                $message = 'Email already verified';
-            } else {
-                $user->email_verified_at = now();
-                $user->save();
-            }
+        if ($user && !$user->email_verified_at) {
+            $user->email_verified_at = now();
+            $user->save();
         }
 
         return redirect()->route('user.manage')->with('email_status', $message);
@@ -247,57 +178,40 @@ class UserController extends Controller
     public function regenerateEmailToken(string $id)
     {
         $user = User::find($id);
-        $user->email_verification_token = Str::random(32);
-        $user->save();
+        $user->update(['email_verification_token' => Str::random(32)]);
 
         $data = [
             'name' => $user->name,
             'email' => $user->email,
             'link' => route('verify.email', ['token' => $user->email_verification_token])
         ];
-        dispatch(new RenewEmailTokenJob($data, $user->email));
-        //->delay(now()->addSeconds(5))
 
+        dispatch(new RenewEmailTokenJob($data, $user->email));
         return redirect()->back();
     }
 
     public function passwordReset(Request $request)
     {
         $request->validate([
-            'email' => [
-                'required',
-                'email',
-                Rule::exists('users', 'email'),
-            ],
+            'email' => ['required', 'email', Rule::exists('users', 'email')],
         ]);
 
-
-        $token = Str::random('32');
         $user = User::where('email', $request->input('email'))->first();
-
-        if ($user->reset_password_token_at) {
-            $tokenTimestamp = strtotime($user->reset_password_token_at); // Convert datetime to Unix timestamp
-            $timeDifference = time() - $tokenTimestamp;
-
-            // Check if the token was generated within the last hour
-            if ($timeDifference < 3600) {
-                dd('Too many password reset requests!');
-            }
+        if ($user && $user->reset_password_token_at && strtotime($user->reset_password_token_at) > time() - 3600) {
+            return 'Too many password reset requests!';
         }
 
+        $token = Str::random(32);
+        $user->update([
+            'reset_password_token' => $token,
+            'reset_password_token_at' => Carbon::now(),
+        ]);
 
-        $user->reset_password_token = $token;
-        $user->reset_password_token_at = Carbon::now();
-        $user->save();
-
-
-        $data = [
+        dispatch(new ResetPasswordMailJob([
             'name' => $user->name,
             'email' => $user->email,
-            'link' => route('reset.form', ['token' => $user->reset_password_token]),
-        ];
-
-        dispatch(new ResetPasswordMailJob($data, $user->email));
+            'link' => route('reset.form', ['token' => $token]),
+        ], $user->email));
 
         return 'Email with the reset form link has been sent!';
     }
@@ -305,25 +219,18 @@ class UserController extends Controller
     public function passwordResetForm(string $token)
     {
         $user = User::where('reset_password_token', $token)->first();
-        // To implement: Should not use the token again and again
-        if ($user == null) {
-            dd('Token Expired');
-        } else {
-            return view('auth.password_reset_update_form', ['email' => $user->email]);
-        }
+        if (!$user) return 'Token Expired';
+
+        return view('auth.password_reset_update_form', ['email' => $user->email]);
     }
 
     public function passwordResetUpdate(Request $request, string $email)
     {
         $request->validate([
             'password' => 'required|string|min:8|confirmed',
-            'password_confirmation' => 'required|min:8',
         ]);
-        $password = Hash::make($request->input('password'));
-        $user = User::where('email', $email)->first();
-        $user->password = $password;
-        $user->save();
 
+        User::where('email', $email)->update(['password' => Hash::make($request->input('password'))]);
         return view('auth.signin', ['password_reset' => 'true']);
     }
 }

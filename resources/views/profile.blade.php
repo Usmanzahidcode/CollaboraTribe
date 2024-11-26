@@ -32,7 +32,8 @@
             @if(session('email_status') != null)
                 @if(session('email_status') == 'expired')
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <strong>Token Expired</strong> The email verification Link has been expired! Resend the link for verification.
+                        <strong>Token Expired</strong> The email verification Link has been expired! Resend the link for
+                        verification.
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 @else
@@ -126,11 +127,11 @@
                         <p class="badge text-bg-primary">{{ $user->role }}</p>
                         <h1>{{ $user->name }}</h1>
                         <p class="fst-italic">Created on: <span>{{ $user->created_at }}</span><span
-                                class="badge text-bg-warning ms-3"
-                                data-bs-toggle="popover" data-bs-placement="top"
-                                data-bs-trigger="focus" tabindex="0"
-                                data-bs-title="Collaboration points"
-                                data-bs-custom-class="custom-popover" data-bs-content="This shows you activity on CollaboraTribe.
+                                    class="badge text-bg-warning ms-3"
+                                    data-bs-toggle="popover" data-bs-placement="top"
+                                    data-bs-trigger="focus" tabindex="0"
+                                    data-bs-title="Collaboration points"
+                                    data-bs-custom-class="custom-popover" data-bs-content="This shows you activity on CollaboraTribe.
 										The more acctive you are on the platform, the more points you have!">CP: {{ $user->cp }}</span>
                         </p>
                         <p class="fst-italic">Last Updated: {{ $user->updated_at }}</p>
@@ -144,7 +145,7 @@
                                         Projects Posted!
                                     </div>
                                     <div class="card-body">
-                                        <h1>{{ $user->authoredProjects->count() }}</h1>
+                                        <h1>{{ $user->projects()->count() }}</h1>
                                     </div>
                                 </div>
                             </div>
@@ -154,7 +155,7 @@
                                         Applied on!
                                     </div>
                                     <div class="card-body">
-                                        <h1>{{ $user->authoredComments->count() }}</h1>
+                                        <h1>{{ $user->projects()->count() }}</h1>
                                     </div>
                                 </div>
                             </div>
@@ -164,7 +165,7 @@
                                         Completed project
                                     </div>
                                     <div class="card-body">
-                                        <h1>{{ $user->authoredProjects()->where('status', 'complete')->count() }}</h1>
+                                        <h1>{{ $user->projects()->where('status', 'complete')->count() }}</h1>
                                     </div>
                                 </div>
                             </div>
@@ -182,7 +183,7 @@
                                 <p class="form-text">Fill the fields needed to update and leave other as it is.</p>
                                 <div class="input-group flex-nowrap mb-3">
 							<span class="input-group-text" id="addon-wrapping"><i
-                                    class="bi bi-person-fill"></i></span>
+                                        class="bi bi-person-fill"></i></span>
                                     <input name="name" type="text"
                                            class="form-control @error('name') is-invalid @enderror"
                                            placeholder="Full name"
@@ -224,11 +225,11 @@
                                 <p class="form-text text-danger  mb-3">@error('profile_picture') {{$message}} @enderror</p>
                                 <div class="w-100 d-flex justify-content-center mb-3">
                                     <input
-                                        class="btn btn-outline-primary w-100"
-                                        type="submit"
-                                        name="submit"
-                                        value="Submit"
-                                        id="submit"/>
+                                            class="btn btn-outline-primary w-100"
+                                            type="submit"
+                                            name="submit"
+                                            value="Submit"
+                                            id="submit"/>
                                 </div>
                             </form>
                         </div>
@@ -263,7 +264,7 @@
                         <p>
                             Here are all of your projects.
                         <div class="row d-flex">
-                            @foreach( $user->authoredProjects->reverse() as $project )
+                            @foreach( $user->projects()->get()->reverse() as $project )
                                 <div class="col-sm-6 mb-3">
                                     <div class="card h-100">
                                         <div class="card-body">
@@ -280,15 +281,15 @@
                                             <h5 class="card-title m-0">{{$project->title}}
                                             </h5>
                                             <div class="my-2"><a
-                                                    href="{{route('projects.show', ['project'=>$project->id])}}"
-                                                    class="text-decoration-none text-decoration-underline text-dark py-5 fst-italic">See
+                                                        href="{{route('projects.show', ['project'=>$project->id])}}"
+                                                        class="text-decoration-none text-decoration-underline text-dark py-5 fst-italic">See
                                                     Project
                                                     >></a>
                                             </div>
                                             @if($project->status == 'active')
                                                 <form
-                                                    action="{{ route('project.changestatus', ['project'=>$project->id]) }}"
-                                                    method="post">
+                                                        action="{{ route('project.changestatus', ['project'=>$project->id]) }}"
+                                                        method="post">
                                                     @csrf
                                                     <input type="hidden"
                                                            value="{{ $project->status }}" name="status">
@@ -314,9 +315,9 @@
                                                                stroke-linejoin="round"
                                                                stroke-width="2">
                                                                 <path
-                                                                    d="m16.474 5.408l2.118 2.117m-.756-3.982L12.109 9.27a2.118 2.118 0 0 0-.58 1.082L11 13l2.648-.53c.41-.082.786-.283 1.082-.579l5.727-5.727a1.853 1.853 0 1 0-2.621-2.621Z"/>
+                                                                        d="m16.474 5.408l2.118 2.117m-.756-3.982L12.109 9.27a2.118 2.118 0 0 0-.58 1.082L11 13l2.648-.53c.41-.082.786-.283 1.082-.579l5.727-5.727a1.853 1.853 0 1 0-2.621-2.621Z"/>
                                                                 <path
-                                                                    d="M19 15v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h3"/>
+                                                                        d="M19 15v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h3"/>
                                                             </g>
                                                         </g>
                                                     </svg>

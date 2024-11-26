@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\User\UserRole;
+use App\Enums\User\UserStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -16,11 +18,11 @@ return new class extends Migration {
             $table->string('email')->unique();
             $table->string('password');
             $table->string('profile_picture');
-            $table->text('bio');
+            $table->text('bio')->nullable();
             $table->integer('cp')->default(0);
-            $table->string('role')->default('student');
-            $table->string('status')->default('active');
-            $table->string('github');
+            $table->enum('role', [UserRole::ADMIN, UserRole::STUDENT])->default(UserRole::STUDENT);
+            $table->enum('status', [UserStatus::ACTIVE, UserStatus::BANNED])->default(UserStatus::ACTIVE);
+            $table->string('github')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('email_verification_token')->nullable();
 
@@ -29,8 +31,7 @@ return new class extends Migration {
             $table->timestamp('reset_password_token_at')->nullable();
 
             //TimeStamps
-            $table->timestamp('created_at')->useCurrent();
-            $table->timestamp('updated_at')->useCurrentOnUpdate()->nullable();
+            $table->timestamps();
 
             $table->rememberToken();
 

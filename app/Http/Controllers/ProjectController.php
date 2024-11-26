@@ -20,10 +20,11 @@ class ProjectController extends Controller
      */
     public function index()
     {
+        $projects = Project::where('status', 'active')
+            ->orderBy('created_at', 'DESC')
+            ->simplePaginate(5);
 
-        $projects = Project::where('status', 'active')->simplePaginate(5);
-
-        return view('catalog', ['projects' => $projects]);
+        return view('project_posts_catalog', ['projects' => $projects]);
     }
 
     public function archive()
@@ -41,11 +42,9 @@ class ProjectController extends Controller
         $today = now()->startOfDay();
         $tomorrow = now()->addDay()->startOfDay();
 
-        $projectsCount = $user->authoredProjects()
+        $projectsCount = $user->projects()
             ->whereBetween('created_at', [$today, $tomorrow->endOfDay()])
             ->count();
-
-//        dd($projectsCount);
 
         return view('create_project', compact('projectsCount'));
     }
@@ -59,7 +58,7 @@ class ProjectController extends Controller
         $today = now()->startOfDay();
         $tomorrow = now()->addDay()->startOfDay();
 
-        $projectsCount = $user->authoredProjects()
+        $projectsCount = $user->projects()
             ->whereBetween('created_at', [$today, $tomorrow])
             ->count();
 
@@ -90,7 +89,6 @@ class ProjectController extends Controller
         $project->save();
 
         event(new NewProjectEvent($project->title, route('projects.show', ['project' => $project->id])));
-
 
         // Redirect or return a response
         return redirect()->route('projects.create')->with('project_posted_success', 'Project created successfully.');
@@ -173,7 +171,7 @@ class ProjectController extends Controller
 
         $project->save();
 
-        //Increase CP points of the user
+        // Increase CP points of the user
         if ($project->status == 'complete') {
             $user = User::find($project->author->id);
             $user->cp = $user->cp + 3;
@@ -185,7 +183,6 @@ class ProjectController extends Controller
 
     public function changeStatusByAdmin(Request $request, string $id)
     {
-
         $project = Project::find($id);
 
         if ($project->status == 'inactive') {
