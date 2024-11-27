@@ -3,15 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Events\NewProjectEvent;
-use App\Events\NewUserEvent;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use phpDocumentor\Reflection\Utils;
-
-use Faker\Factory as FakerFactory;
 
 class ProjectController extends Controller
 {
@@ -200,7 +196,7 @@ class ProjectController extends Controller
 
         $project->save();
 
-        //Increase CP points of the user
+        // Increase CP points of the user
         if ($project->status == 'active') {
             $user = User::find($project->author->id);
             $user->cp = $user->cp + 5;

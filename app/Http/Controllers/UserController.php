@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\NewUserEvent;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegistrationRequest;
+use App\Http\Requests\UserUpdateRequest;
 use App\Jobs\RenewEmailTokenJob;
 use App\Jobs\ResetPasswordMailJob;
-use App\Jobs\WelcomeMailJob;
+use App\Mail\WelcomeMail;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -22,24 +25,8 @@ class UserController extends Controller
         return view('admin.manageusers', ['users' => User::all()]);
     }
 
-    public function create()
+    public function store(RegistrationRequest $request)
     {
-        return view('auth.signup');
-    }
-
-    public function store(Request $request)
-    {
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users',
-            'bio' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
-            'password_confirmation' => 'required|min:8',
-            'github' => 'required|string',
-            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120',
-        ]);
-
-        $validatedData['password'] = Hash::make($validatedData['password']);
         $fileName = time() . '_profile_pic_' . $request->profile_picture->getClientOriginalName();
         $request->file('profile_picture')->storeAs('public/userData/profile_pictures', $fileName);
 
@@ -47,20 +34,18 @@ class UserController extends Controller
             'name' => $request->input('name'),
             'email' => $request->input('email'),
             'github' => $request->input('github'),
-            'password' => $validatedData['password'],
+            'password' => $request->input('password'),
             'bio' => $request->input('bio'),
             'profile_picture' => $fileName,
             'email_verification_token' => Str::random(32),
         ]);
 
-        event(new NewUserEvent($user->name, route('users.show', ['user' => $user->id])));
-
         if (Auth::attempt($request->only('email', 'password'))) {
-            dispatch(new WelcomeMailJob([
+            Mail::to($user->email)->send(new WelcomeMail([
                 'name' => $user->name,
                 'email' => $user->email,
                 'link' => route('verify.email', ['token' => $user->email_verification_token]),
-            ], $user->email));
+            ]));
 
             $request->session()->regenerate();
             return redirect()->intended(route('user.manage'));
@@ -69,19 +54,19 @@ class UserController extends Controller
         return redirect()->route('user.manage', $user);
     }
 
+    public function create()
+    {
+        return view('auth.signup');
+    }
+
     public function signIn()
     {
         return view('auth.signin');
     }
 
-    public function handleLogin(Request $request)
+    public function handleLogin(LoginRequest $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'min:8'],
-        ]);
-
-        if (Auth::attempt($credentials)) {
+        if (Auth::attempt($request->only('email', 'password'))) {
             $request->session()->regenerate();
             return redirect()->intended(route('user.manage'));
         }
@@ -118,17 +103,9 @@ class UserController extends Controller
         return redirect()->back();
     }
 
-    public function update(Request $request, string $id)
+    public function update(UserUpdateRequest $request, User $user)
     {
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email',
-            'bio' => 'required|string',
-            'github' => 'required|string',
-            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
-        ]);
-
-        $user = User::find($id);
+        // If the profile picture is given
         if ($request->hasFile('profile_picture')) {
             Storage::delete('public/userData/profile_pictures/' . $user->profile_picture);
             $name = time() . '_profile_pic_' . $request->profile_picture->getClientOriginalName();

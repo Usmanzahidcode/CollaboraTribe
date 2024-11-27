@@ -29,6 +29,7 @@ class User extends Authenticatable
     ];
 
     // Eloquent Relations
+
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class, 'author_id');
@@ -37,6 +38,14 @@ class User extends Authenticatable
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class, 'author_id');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'password' => 'hashed',
+            'email_verified_at' => 'datetime'
+        ];
     }
 
 }

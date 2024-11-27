@@ -42,16 +42,12 @@ Route::group(['middleware' => ['authenticated', 'active', 'verified']], function
 
     // Project Routes
     Route::resource('projects', ProjectController::class);
-
-    // Project Archive
     Route::get('project/archive', [ProjectController::class, 'archive'])->name('projects.archive');
+    Route::post('/project/change-status/{project}', [ProjectController::class, 'changeStatus'])->name('project.changestatus');
 
     //Comments routes
     Route::resource('comments', CommentController::class);
     Route::post('/comments/{project}', [CommentController::class, 'store'])->name('comments.store');
-
-    //Project status updates
-    Route::post('/project/change-status/{project}', [ProjectController::class, 'changeStatus'])->name('project.changestatus');
 
     Route::group(['middleware' => ['admin']], function () {
         Route::get('users', [UserController::class, 'index']);
